@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<style>
+    body {
+      background-image: url('bg-img.jpg'); /* Replace 'path_to_your_image.jpg' with your image file path */
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif; /* Change font family if needed */
+      color: white; /* Change text color if needed */
+      flex-direction: column;
+    }
+
+    #login {
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5); /* Add a semi-transparent background */
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    h1 {
+      margin-top: 0; /* Remove default margin */
+    }
+
+    input[type="username"],
+    input[type="password"] {
+      width: 200px; /* Adjust width as needed */
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+
+    button {
+      padding: 8px 20px;
+      background-color: #007bff; /* Change button color if needed */
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3; /* Change button color on hover if needed */
+    }
+  </style>
+<body>
+  <h1>Login</h1>
+  <form id="login">
+    <input type="username" id="username-login" placeholder="username"/>
+    <p class="msg" id="1"></p>
+    <input type="password" id="password" placeholder="Password"/>
+    <p class="msg" id="2"></p>
+    <button type="submit" id="submit">login</button>
+  </form>
+</body>
+
+<script>
+    const form=document.getElementById('login');
+    form.addEventListener('submit', login);
+    async function login(event)
+    {
+        event.preventDefault();
+        const username=document.getElementById('username-login').value;
+        const password=document.getElementById('password').value;
+        const result=await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username, 
+                password
+            })
+        }).then((res)=>res.json());
+        if (result.status === 'ok') {
+            // everythign went fine
+            console.log('Got the token: ', result.data)                    
+            localStorage.setItem('token', result.data)
+            localStorage.setItem('ID', result.ID)
+            document.getElementById('1').innerHTML = "";
+            window.location='/details'
+        } else if(result.idx) {
+            document.getElementById('username-login').innerHTML = "";
+            document.getElementById('password').innerHTML = "";
+            document.getElementById(result.idx).innerHTML = result.error;
+        } else {
+            document.getElementById('username-login').value = "";
+            document.getElementById('password').value = "";
+            alert(result.error);
+        }
+    }
+</script>
+</html>

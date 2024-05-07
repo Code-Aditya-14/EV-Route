@@ -1,0 +1,176 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BTP</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body,
+      #map {
+        height: 100%;
+        width: 100%;
+      }
+      #speakButton {
+        position: absolute;
+        left: 0px;
+        bottom: 0px;
+        z-index: 500;
+        height: 25px;
+        width: 50px;
+        margin: 10px;
+        /* transform: translate(0, -100%); */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <button id="speakButton">Speak</button>
+
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet.icon.glyph@0.2.0/Leaflet.Icon.Glyph.js"></script>
+
+    <script>
+      window.LRM = {
+        tileLayerUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        osmServiceUrl: "https://routing.openstreetmap.de/routed-car/route/v1",
+        orsServiceUrl: "https://api.openrouteservice.org/geocode/",
+        apiToken: "5b3ce3597851110001cf6248ff41dc332def43858dff1ecccdd19bbc",
+      };
+
+      let curLatitude = 26.8467,
+        curLongitude = 80.9462;
+      let allInstructionsInText = "";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          curLatitude = position.coords.latitude;
+          curLongitude = position.coords.longitude;
+          main(curLatitude, curLongitude);
+        },
+        (error) => {
+          main(curLatitude, curLongitude);
+          alert("Your browser doesn't support geolocation feature!");
+        }
+      );
+
+      const main = (curLatitude, curLongitude) => {
+        let map = L.map("map").setView(L.latLng(curLatitude, curLongitude), 12);
+        let waypoints = [L.latLng(curLatitude, curLongitude)];
+
+        L.tileLayer(LRM.tileLayerUrl, {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        let control = L.Routing.control({
+          router: L.routing.osrmv1({
+            serviceUrl: LRM.osmServiceUrl,
+          }),
+          plan: L.Routing.plan(waypoints, {
+            createMarker: function (i, wp) {
+              return L.marker(wp.latLng, {
+                draggable: true,
+                icon: L.icon.glyph({ glyph: String.fromCharCode(65 + i) }),
+              });
+            },
+            geocoder: L.Control.Geocoder.nominatim(),
+            routeWhileDragging: true,
+          }),
+          routeWhileDragging: true,
+          routeDragTimeout: 250,
+          showAlternatives: true,
+          altLineOptions: {
+            styles: [
+              { color: "black", opacity: 0.15, weight: 9 },
+              { color: "white", opacity: 0.8, weight: 6 },
+              { color: "blue", opacity: 0.5, weight: 2 },
+            ],
+          },
+        })
+          
+          .on("routingerror", function (e) {
+            try {
+              map.getCenter();
+            } catch (e) {
+              map.fitBounds(L.latLngBounds(waypoints));
+            }
+            handleError(e);
+          })
+          .on("routesfound", function (e) {
+            console.log(e);
+            // let allInstructions = e.routes[0].instructions;
+            // allInstructionsInText = "";
+            // for (let i = 0; i < allInstructions.length; i++) {
+            //   allInstructionsInText +=
+            //     i.toString(10) + " : " + allInstructions[i].text + "\n";
+            // }
+            // console.log(allInstructionsInText);
+          });
+
+        L.Routing.errorControl(control).addTo(map);
+
+        map.on("click", function (e) {
+          L.popup().setLatLng(e.latlng);
+          if (waypoints.length <= 1) {
+            waypoints.push(e.latlng);
+            if (waypoints.length == 2) control.setWaypoints(waypoints);
+          } else {
+            control.spliceWaypoints(control.getWaypoints().length, 0, e.latlng);
+          }
+        });
+      };
+
+      document.getElementById("speakButton").addEventListener("click", () => {
+        function getVoices() {
+          let voices = speechSynthesis.getVoices();
+          if (!voices.length) {
+            let utterance = new SpeechSynthesisUtterance("");
+            speechSynthesis.speak(utterance);
+            voices = speechSynthesis.getVoices();
+          }
+          return voices;
+        }
+
+        function speak(text, voice, rate, pitch, volume) {
+          let speakData = new SpeechSynthesisUtterance();
+          speakData.volume = volume; // from 0 to 1
+          speakData.rate = rate; // from 0.1 to 10
+          speakData.pitch = pitch; // from 0 to 2
+          speakData.text = text;
+          speakData.lang = "en";
+          speakData.voice = voice;
+
+          speechSynthesis.speak(speakData);
+        }
+
+        if ("speechSynthesis" in window) {
+          let voices = getVoices();
+          let rate = 1,
+            pitch = 2,
+            volume = 1;
+
+          speak(allInstructionsInText, voices[5], rate, pitch, volume);
+        } else {
+          console.log("Your browser doesn't support Speech Synthesis feature!");
+        }
+      });
+    </script>
+  </body>
+</html>

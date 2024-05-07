@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking</title>
+</head>
+<style>
+    body {
+        background-image: url('bg-img.jpg');
+        /* Replace 'path_to_your_image.jpg' with your image file path */
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        /* Change font family if needed */
+        color: white;
+        /* Change text color if needed */
+        flex-direction: column;
+    }
+
+    .login-header {
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+        /* Add a semi-transparent background */
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        /* Add margin between header and form */
+    }
+
+    #booking-form {
+        text-align: center;
+        background: rgba(0, 0, 0, 0.5);
+        /* Add a semi-transparent background */
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    h1 {
+        margin-top: 0;
+        /* Remove default margin */
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    input[type="datetime-local"] {
+        width: 200px;
+        /* Adjust width as needed */
+        margin-bottom: 10px;
+        padding: 5px;
+    }
+
+    button {
+        padding: 8px 20px;
+        background-color: #007bff;
+        /* Change button color if needed */
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+        /* Change button color on hover if needed */
+    }
+
+    div {
+        text-align: left;
+    }
+</style>
+
+<body>
+    <div class="login-header">
+        <h1>BOOKING</h1>
+    </div>
+    <form id="booking-form">
+        <input type="text" name="" id="Name" placeholder="Name" required />
+        <br>
+        <br>
+        <input type="text" name="" id="Phone" placeholder="Phone No." required />
+        <br>
+        <br>
+        <input type="email" name="" id="Email" placeholder="Email ID" required />
+        <br>
+        <br>
+        <div>Charging Station</div>
+        <br>
+        <select name="" id="EV-Stations" aria-placeholder="charging">
+            <option value="">Select</option>
+        </select>
+        <br>
+        <br>
+        <div>Start Time</div>
+        <br>
+        <input type="datetime-local" name="" id="startTime" style="width: 214px; height: 20px;" required />
+        <br>
+        <br>
+        <div>End Time</div>
+        <br>
+        <input type="datetime-local" name="" id="endTime" style="width: 214px; height: 20px;" required />
+        <br>
+        <br>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+<script>
+    const apiKey = "b8d077af-f680-43f2-b80a-329bd6831d84";
+    async function getInfo() {
+        var api_url = `https://api.openchargemap.io/v3/poi/?output=json&distance=10&distanceunit=KM&CountryCode=IN&maxresults=100&key=${apiKey}`;
+        const resp = await fetch(api_url);
+        const obj = await resp.json();
+        if (obj.length > 0) {
+            const sel = document.getElementById('EV-Stations');
+            for (var i = 0; i < obj.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = obj[i].ID;
+                opt.innerHTML = `${obj[i].AddressInfo.Title}, ${obj[i].AddressInfo.Town}`;
+                sel.appendChild(opt);
+            }
+        }
+    }
+    getInfo();
+    // Post req for booking form
+    const form = document.getElementById('booking-form');
+    form.addEventListener('submit', submitHandler);
+
+    var booked_lat = localStorage.getItem('booked_lat');
+    var booked_long = localStorage.getItem('booked_long');
+
+    // var curr_lat = localStorage.getItem('curr_lat');
+    // var curr_long = localStorage.getItem('curr_long');
+    // async function getDist() {
+    //     var lat1 = booked_lat;
+    //     var lat2 = curr_lat;
+    //     var long1 = booked_long;
+    //     var long2 = curr_long;
+
+    //     var dis_api = `https://api.tomtom.com/routing/1/calculateRoute/${lat1}%2C${long1}%3A${lat2}%2C${long2}/json?key=HyfltSfjRrPGgAQTNIJXXWkbTWk21M5r`;
+    //     const dis_res = await fetch(dis_api);
+    //     const obj = await dis_res.json();
+    //     console.log(lat1, lat2, obj)
+    // }
+    // getDist()
+
+    async function submitHandler(event) {
+        event.preventDefault();
+        const name = document.getElementById('Name').value;
+        const phone = document.getElementById('Phone').value;
+        const email = document.getElementById('Email').value;
+        const evstation = document.getElementById('EV-Stations').value;
+        var startTime = document.getElementById('startTime').value;
+        var endTime = document.getElementById('endTime').value;
+
+        startTime = startTime.split(":").slice(0, -1).join(":") + ":00";
+        endTime = endTime.split(":").slice(0, -1).join(":") + ":00";
+
+        async function getCoords() {
+            var api_url = `https://api.openchargemap.io/v3/poi/?output=json&distance=10&distanceunit=KM&CountryCode=IN&maxresults=100&key=${apiKey}`;
+            const resp = await fetch(api_url);
+            const obj = await resp.json();
+            const curr_ev = obj.find(item => item.ID == evstation)
+            console.log(curr_ev.AddressInfo.Latitude, curr_ev.AddressInfo.Longitude)
+            localStorage.setItem('booked_lat', curr_ev.AddressInfo.Latitude);
+            localStorage.setItem('booked_long', curr_ev.AddressInfo.Longitude)
+        }
+        getCoords();
+
+        var booked_lat = localStorage.getItem('booked_lat');
+        var booked_long = localStorage.getItem('booked_long');
+
+        var curr_lat = localStorage.getItem('curr_lat');
+        var curr_long = localStorage.getItem('curr_long');
+        async function getDist() {
+            var lat1 = booked_lat;
+            var lat2 = curr_lat;
+            var long1 = booked_long;
+            var long2 = curr_long;
+
+            var dis_api = `https://api.tomtom.com/routing/1/calculateRoute/${lat1}%2C${long1}%3A${lat2}%2C${long2}/json?key=HyfltSfjRrPGgAQTNIJXXWkbTWk21M5r`;
+            const dis_res = await fetch(dis_api);
+            const obj = await dis_res.json();
+            localStorage.setItem('distance', obj.routes[0].summary.travelTimeInSeconds)
+            console.log(lat1, lat2, obj.routes[0].summary.travelTimeInSeconds)
+        }
+        getDist()
+
+        const dista = localStorage.getItem('distance');
+
+
+
+        var nowTime = new Date();
+        var stDateTime = new Date(startTime);
+
+        const diff = stDateTime - nowTime;
+        console.log(startTime, endTime)
+        const diffInSec = diff / 1000;
+        if (diffInSec <= dista) {
+            alert('Insufficient time to reach destination')
+            return;
+        }
+
+        if(endTime < startTime)
+        {
+            alert('End time should be greater than start time')
+            return;
+        }
+        // else {
+        const result = await fetch('/api/book', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                phone,
+                email,
+                evstation,
+                startTime,
+                endTime
+            })
+        }).then((res) => res.json());
+        if (result.status === 'ok') {
+            alert('Charging slot booked successfully.');
+            // window.location = '/';
+        }
+        else {
+            alert(result.error)
+        }
+        // }
+    }
+
+</script>
+
+</html>
