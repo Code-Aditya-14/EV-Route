@@ -228,8 +228,8 @@
             })
         }).then((res) => res.json());
         if (result.status === 'ok') {
-            alert('Charging slot booked successfully.');
-            // window.location = '/';
+            alert('You will recieve an confirmation email regarding slot shortly');
+            window.location = '/';
         }
         else {
             alert(result.error)
